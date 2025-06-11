@@ -17,18 +17,10 @@ function precmd_dashed_line() {
   print -P "${color_start}${dash_line}${color_reset}"
 }
 
-precmd_functions+=(precmd_dashed_line)
-
-# # 注册到 precmd 钩子
-# precmd_functions+=(precmd_draw_colored_dashes)
-
-# # 在每次命令提示符显示前输出一整行短横线
-# function precmd_dashed_line() {
-#   printf "%$(tput cols)s\n" | tr ' ' '-'
-# }
-
-# # 将函数添加到precmd钩子
-# precmd_functions+=(precmd_dashed_line)
+# 检查 precmd_dashed_line 是否已经注册到 precmd_functions 中
+if [[ ! " ${precmd_functions[@]} " =~ " precmd_dashed_line " ]]; then
+  precmd_functions+=(precmd_dashed_line)
+fi
 
 # 注：这里一定要是单引号，双引号会导致 conda_prompt_info 函数无法执行
 PROMPT='$(conda_prompt_info)'
