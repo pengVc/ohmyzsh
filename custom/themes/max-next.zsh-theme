@@ -129,3 +129,10 @@ if zstyle -t ':omz:alpha:lib:git' async-prompt \
     _omz_register_handler _omz_git_prompt_info
     _omz_register_handler _omz_git_prompt_status
 fi
+
+keep_bottom_precmd () {
+  # 想留 5 行空白
+  printf '\n\n\n\n\n\e[5A'
+}
+
+add-zsh-hook precmd keep_bottom_precmd
