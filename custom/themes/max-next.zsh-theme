@@ -26,6 +26,15 @@ local highlight_bg=$bg[red]
 
 local prefix='>'
 
+# 项目根标识文件/目录，遇到时停止向上获取路径（可扩展，如添加 package.json）
+local project_root_markers=(.git)
+
+# 计算字符串的可见字符长度（去除 ANSI 转义和 zsh 提示转义）
+function visible_len {
+    local zero='%([BSUbfksu]|([FB]|){*})'
+    echo ${#${(S%%)1//$~zero/}}
+}
+
 # Machine name.
 function get_box_name {
     if [ -f ~/.box-name ]; then
@@ -45,8 +54,61 @@ function get_usr_name {
 }
 
 # Directory info.
+# 始终从项目根开始展示路径；若超出终端宽度则进一步截断并加 … 前缀
 function get_current_dir {
-    echo "${PWD/#$HOME/~}"
+    local dir="${PWD/#$HOME/~}"
+    local parts=("${(@)${(@s:/:)dir}:#}")
+    local total=${#parts}
+
+    # 1. 查找项目根：从最深层向上，找到包含标识文件/目录的目录
+    local project_root_idx=0
+    local i=$total
+    while [[ $i -gt 0 ]]; do
+        local check_path="${(j:/:)parts[1,$i]}"
+        check_path="${check_path/#\~/$HOME}"
+        for marker in $project_root_markers; do
+            if [[ -e "$check_path/$marker" ]]; then
+                project_root_idx=$i
+                break 2
+            fi
+        done
+        i=$(( i - 1 ))
+    done
+
+    # 2. 从项目根开始截取路径
+    if [[ $project_root_idx -gt 0 ]]; then
+        local result="${(j:/:)parts[$project_root_idx,$total]}"
+    else
+        local result="$dir"
+    fi
+
+    # 3. 计算终端可用宽度
+    local fixed="%{$blue%}# %{$reset_color%}$(get_git_prompt) %{$blue%}[$(get_time_stamp)]%{$reset_color%}"
+    local fixed_len=$(visible_len "$fixed")
+    local available=$(( $COLUMNS - $fixed_len ))
+
+    # 4. 路径能放下就直接展示
+    if [[ ${#result} -le $available ]]; then
+        echo "$result"
+        return
+    fi
+
+    # 5. 放不下：从最深层逐层向上拼接，直到占满可用宽度
+    local trunc_parts=("${(@)${(@s:/:)result}:#}")
+    local trunc_result="${trunc_parts[-1]}"
+    local j=$(( ${#trunc_parts} - 1 ))
+    while [[ $j -gt 0 ]]; do
+        local candidate="${trunc_parts[$j]}/${trunc_result}"
+        if [[ ${#candidate} -gt $available ]]; then
+            break
+        fi
+        trunc_result="$candidate"
+        j=$(( j - 1 ))
+    done
+    if [[ $j -gt 0 ]]; then
+        trunc_result="…${trunc_result}"
+    fi
+    echo "$trunc_result"
 }
 
 # Git info.
