@@ -24,10 +24,12 @@ local white_bold=$fg_bold[white]
 
 local highlight_bg=$bg[red]
 
-local prefix='>'
+local top_prefix='╭─'
+local bottom_prefix='╰─'
+local bottom_prefix_arrow='➤'
 
 # 项目根标识文件/目录，遇到时停止向上获取路径（可扩展，如添加 package.json）
-local project_root_markers=(.git)
+local project_root_markers=(.git package.json)
 
 # 计算字符串的可见字符长度（去除 ANSI 转义和 zsh 提示转义）
 function visible_len {
@@ -161,7 +163,7 @@ function get_space {
 # > command
 function get_prompt_header {
     local left_prompt="\
-%{$blue%}# \
+%{$gray%}$top_prefix \
 %{$yellow_bold%}$(get_current_dir)%{$reset_color%}\
 $(get_git_prompt) "
     local right_prompt=" %{$blue%}[$(get_time_stamp)]%{$reset_color%}"
@@ -170,9 +172,9 @@ $(get_git_prompt) "
 
 function get_prompt_indicator {
     if [[ $? -eq 0 ]]; then
-        echo "%{$magenta_bold%}$prefix %>{$reset_color%}"
+        echo "%{$gray%}$bottom_prefix%{$magenta_bold%}$bottom_prefix_arrow %>{$reset_color%}"
     else
-        echo "%{$red_bold%}$prefix %>{$reset_color%}"
+        echo "%{$gray%}$bottom_prefix%{$red_bold%}$bottom_prefix_arrow %>{$reset_color%}"
     fi
 }
 
